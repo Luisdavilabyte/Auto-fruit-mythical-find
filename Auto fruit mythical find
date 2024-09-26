@@ -1,0 +1,59 @@
+-- Hub de auto-farm de frutas valiosas (Buddha, Portal y míticas)
+
+local player = game.Players.LocalPlayer
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local valuableFruits = {"Kitsune", "Spirit", "Dough", "Dragon", "Gravity", "Buddha", "Portal"} -- Frutas valiosas
+
+-- Función para verificar si hay frutas valiosas spawneadas
+local function isValuableFruitAvailable()
+    for _, fruit in pairs(valuableFruits) do
+        local fruitData = replicatedStorage:WaitForChild("Fruits"):FindFirstChild(fruit)
+        if fruitData and fruitData.Value > 0 then
+            return true, fruit
+        end
+    end
+    return false, nil
+end
+
+-- Función para hacer "server hop" y teleportarse
+local function serverHopAndTeleport()
+    local HttpService = game:GetService("HttpService")
+    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+    local response = HttpService:GetAsync(url)
+    local data = HttpService:JSONDecode(response)
+    local servers = data.data
+    local serverToJoin = nil
+
+    for _, server in pairs(servers) do
+        if server.playing < server.maxPlayers then
+            serverToJoin = server
+            break
+        end
+    end
+
+    if serverToJoin then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, serverToJoin.id, player)
+        wait(5)
+        print("Cambiando de servidor...")
+    else
+        print("No hay servidores disponibles.")
+    end
+end
+
+-- Función principal para farmeo de frutas valiosas
+local function autoFarmValuableFruits()
+    while true do
+        local found, fruit = isValuableFruitAvailable()
+        if found then
+            print("Fruta valiosa encontrada: " .. fruit)
+            wait(2)
+        else
+            print("No hay frutas valiosas, cambiando de servidor...")
+            serverHopAndTeleport()
+            wait(10)
+        end
+    end
+end
+
+-- Inicia el farmeo
+spawn(autoFarmValuableFruits)
